@@ -8,33 +8,26 @@ const app = express();
  */
 
 
-// handle GET request for /user route
-app.get("/user", (req, res) => {
-    res.send({firstname: "Rishabh", lastname: "Agrawal"});
-});
-
-// handle POST request for /user route
-app.post("/user", (req, res) => {
-    // data sent to DB
-    res.send("Sent data successfully");
-});
-
-// handle DELETE request for /user route
-app.delete("/user", (req, res) => {
-    // delete data from DB
-    res.send("Deleted data successfully");
-});
-
-// handle PATCH request for /user route
-app.patch("/user", (req, res) => {
-    // update data in DB
-    res.send("Updated data successfully");
-});
-
-
-// handle all methods for /user route
-app.use("/test", (req, res) => {
-    res.send('Hello, World from server!');
+app.use("/user", (req, res, next) => {
+    console.log("1st handler for /user route");
+    next();
+},
+    [(req, res, next) => {
+        console.log("2nd handler for /user route");
+        next();
+    },
+    (req, res, next) => {
+        console.log("3rd handler for /user route");
+        next();
+        res.send("3rd response!");
+    }],
+(req, res, next) => {
+        console.log("4th handler for /user route");
+        next();
+},
+(req, res, next) => {
+        console.log("5th handler for /user route");
+        res.send("5th response!");
 });
 
 app.listen(7777, () => {

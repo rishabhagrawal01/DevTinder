@@ -35,7 +35,7 @@ DevTinder is a Tinder-like networking platform built using the MERN stack, where
 
 ---
 
-** Future Improvements:**
+**Future Improvements:**
 💬 Real-time chat feature
 📍 Location-based matching
 🧠 Skill-based recommendations

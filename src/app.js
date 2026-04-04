@@ -14,22 +14,21 @@ const { adminAuth, userAuth } = require("./middlewares/auth");
 // 1. at the top level, so it will be executed for all routes => like in admin route
 // 2. at the route level, so it will be executed only for that route => like in user route 
 
-app.use("/admin", adminAuth);
 
-app.post("/user/login", (req, res) => {
-    res.send("User logged in!");
+app.get("/getUserData", (req, res) => {
+    try {
+        // logic
+        throw new Error("asasajsasbk!");
+        res.send("User logged in!");
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Error occured, contact support!");
+    }
 });
 
-app.get("/user/data", userAuth, (req, res) => {
-    res.send("User data sent!");
-});
-
-app.get("/admin/getAllData", (req, res) => {
-    res.send("All data sent!");
-});
-
-app.get("/admin/deleteUser", (req, res) => {
-    res.send("User deleted!");
+app.use("/", (err, req, res, next) => {
+    console.error(err);
+    res.status(500).send("Something went wrong!");
 });
 
 app.listen(7777, () => {

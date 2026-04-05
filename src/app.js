@@ -3,16 +3,12 @@ const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user");
 
+app.use(express.json());
+
 app.post('/signup', async (req, res) => {
-    // Creating q new instance of the User model
-    const user = new User({
-        firstName: "Lakshay",
-        lastName: "Sen",
-        emailId: "lakshaysen@gmail.com",
-        password: "lakshay@123",
-        age: "27",
-        gender: "Male"
-    });
+    // Creating a new instance of the User model
+    const user = new User(req.body);
+    
     try {
         await user.save();
         res.send("User added successfully..!");
@@ -22,7 +18,7 @@ app.post('/signup', async (req, res) => {
 });
 
 connectDB()
-    .then(() => {
+    .then(() => {   
         console.log("Database connected successfully.");
         app.listen(7777, () => {
             console.log('Server is running on port 7777');

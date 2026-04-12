@@ -4,8 +4,11 @@ const app = express();
 const User = require("./models/user");
 const bcrypt = require("bcrypt");
 const { validateSignUpData } = require("./utils/validation");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 
 app.use(express.json());
+app.use(cookieParser());
 
 // GET any user by emailId
 app.get("/user", async (req, res) => {
@@ -99,21 +102,53 @@ app.post("/login", async (req, res) => {
     try {
         const { emailId, password } = req.body;
 
-        const user = await User.findOne({ emailId : emailId });
-        if (!user){
+        const user = await User.findOne({ emailId: emailId });
+        if (!user) {
             throw new Error("Invalid credentials");
-        } 
-        else {
-            const isPasswordCorrect = await bcrypt.compare(password, user.password);
-            if (!isPasswordCorrect) {
-                throw new Error("Invalid credentials");
-            } else {
-                res.send("Login successful..!");
-            }
         }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordCorrect) {
+            throw new Error("Invalid credentials");
+        } else {
+            // create a JWT token
+            var token = jwt.sign({ _id: user._id }, 'SECRET_KEY');
+
+            // send the token back to the user
+            res.cookie("token", token);
+            res.send("Login successful..!");
+        }
+
     } catch (err) {
         res.status(400).send("ERROR : " + err.message);
     }
+});
+
+app.get("/profile", async (req, res) => {
+    try {
+        // get the cookie
+        const { token } = req.cookies;
+
+        // verify the cookie
+        if (!token) {
+            throw new Error("Invalid token!");
+        }
+        const decodedMessage = await jwt.verify(token, 'SECRET_KEY'); // { _id: user._id }
+
+        const { _id } = decodedMessage;
+       
+        const loggedInUser = await User.findOne({ _id: _id });
+        
+        if(!loggedInUser) {
+            throw new Error("Please login!");
+        }
+
+        res.send(loggedInUser);
+    } catch (err) {
+        res.status(400).send("ERROR : " + err.message);
+    }
+
 });
 
 connectDB()

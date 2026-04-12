@@ -6,35 +6,11 @@ const bcrypt = require("bcrypt");
 const { validateSignUpData } = require("./utils/validation");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const { userAuth } = require('./middlewares/auth');
 
 app.use(express.json());
 app.use(cookieParser());
 
-// GET any user by emailId
-app.get("/user", async (req, res) => {
-    const userEmail = req.body.emailId;
-
-    try {
-        const user = await User.findOne({ emailId: userEmail });
-        if (!user) {
-            res.status(404).send("User not found..!");
-        } else {
-            res.send(user);
-        }
-    } catch (err) {
-        res.status(400).send("Something went wrong..!" + err);
-    }
-});
-
-// GET /feed => Get all users
-app.get("/feed", async (req, res) => {
-    try {
-        const users = await User.find({});
-        res.send(users);
-    } catch (err) {
-        res.status(400).send("Something went wrong..!" + err);
-    }
-})
 
 // POST /signup => Create a new user
 app.post('/signup', async (req, res) => {
@@ -62,41 +38,6 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// DELETE /user => Delete a user by _id
-app.delete("/user", async (req, res) => {
-    const userId = req.body._id;
-    try {
-        // const user = await User.findByIdAndDelete(userId);
-        const user = await User.findByIdAndDelete({ _id: userId });
-        res.send("User deleted successfully..!");
-    } catch (err) {
-        res.status(400).send("Failed to delete user..!" + err);
-    }
-})
-
-// PATCH /user => Update a user by _id
-app.patch("/user/:userId", async (req, res) => {
-    const userId = req.params?.userId;
-    const data = req.body;
-
-    try {
-        const ALLOWED_UPDATES = ["photoUrl", "about", "skills", "password", "age"];
-        const isUpdateAllowed = Object.keys(data).every((x) => ALLOWED_UPDATES.includes(x));
-
-        if (!isUpdateAllowed) {
-            throw new Error("Invalid update fields..!");
-        }
-        if (data?.skills.length > 10) {
-            throw new Error("Maximum 10 skills allowed..!");
-        }
-        const user = await User.findByIdAndUpdate(userId, data, { returnDocument: "after", runValidators: true });
-
-        res.send("User updated successfully..!");
-    } catch (err) {
-        res.status(400).send("Failed to update user: " + err.message);
-    }
-});
-
 // POST /login => Login a user
 app.post("/login", async (req, res) => {
     try {
@@ -107,48 +48,37 @@ app.post("/login", async (req, res) => {
             throw new Error("Invalid credentials");
         }
 
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordCorrect) {
-            throw new Error("Invalid credentials");
-        } else {
-            // create a JWT token
-            var token = jwt.sign({ _id: user._id }, 'SECRET_KEY');
-
-            // send the token back to the user
-            res.cookie("token", token);
+        const isPasswordCorrect = await user.validatePassword(password);
+        if (isPasswordCorrect) {
+            var token = await user.getJWT();
+            
+            res.cookie("token", token, { expires: new Date(Date.now() + 86400000) });
             res.send("Login successful..!");
+        } else {
+            throw new Error("Invalid credentials");
         }
-
     } catch (err) {
         res.status(400).send("ERROR : " + err.message);
     }
 });
 
-app.get("/profile", async (req, res) => {
+// GET /profile => Get the profile of the logged-in user
+app.get("/profile", userAuth, async (req, res) => {
     try {
-        // get the cookie
-        const { token } = req.cookies;
-
-        // verify the cookie
-        if (!token) {
-            throw new Error("Invalid token!");
-        }
-        const decodedMessage = await jwt.verify(token, 'SECRET_KEY'); // { _id: user._id }
-
-        const { _id } = decodedMessage;
-       
-        const loggedInUser = await User.findOne({ _id: _id });
-        
-        if(!loggedInUser) {
-            throw new Error("Please login!");
-        }
-
-        res.send(loggedInUser);
+        const user = req.user;
+        res.send(user);
     } catch (err) {
         res.status(400).send("ERROR : " + err.message);
     }
+});
 
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+    try {
+        const user = req.user;
+        res.send(`${user.firstName} sent a connection request!`);
+    } catch (err) {
+        res.status(400).send("ERROR : " + err.message);
+    }
 });
 
 connectDB()

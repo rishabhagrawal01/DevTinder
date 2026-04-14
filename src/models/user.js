@@ -81,6 +81,9 @@ userSchema.methods.getJWT = async function () {
     return token;
 };
 
+//compound indexing
+userSchema.index({firstName : 1, lastName : 1});
+
 userSchema.methods.validatePassword = async function (passwordEnteredByUser) {
     const user = this;
     const passwordHash = user.password;
